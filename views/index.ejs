@@ -1,0 +1,42 @@
+<%- include("partials/header.ejs") %>
+
+
+<body>
+  <div class="container">
+    <!-- Main welcome messages -->
+    <div>
+      <h1>✏️📋 To Do List App 📋✏️</h1>
+    </div>
+
+    <% if (locals.tasks && locals.listName) { %>
+      <h2> You have <%= locals.tasks.length %> items in your <%= locals.listName %> task list.</h2>
+
+      <div class="taskDiv">
+        <% for ( i=0; i < locals.tasks.length; i++ ) { %>
+          <div class="task">
+            <!-- @TODO_EWEN How to marks tasks as done in the backend.? -->
+            <input type="checkbox" 
+              <% if (locals.tasks[i].done) { %>
+              checked
+              <% } %>
+            >
+            <p><%= locals.tasks[i].text %></p>
+          </div>
+        <% } %>
+      </div>
+    <% } %>
+
+  <div class="newTaskDiv">
+    <!-- Add new task item. -->
+    <form class="item" action="/" method="post">
+      <input class="newTaskInput" type="text" name="newItem" placeholder="Add a new task here" autocomplete="off">
+      <button type="submit" name="listName" value="<%= locals.listName %>" list=""> add task </button>
+    </form>
+  </div>
+
+  </div>
+</body>
+
+
+<%- include("partials/footer.ejs") %>
+</html>

@@ -1,0 +1,9 @@
+// This makes vs code use jquery intellisense. It needs to go in the same folder as your js files.
+{
+    "typeAcquisition": {
+        "include": [
+            "jquery"
+        ]
+    }
+
+}

@@ -1,0 +1,92 @@
+body {
+  font-family: monospace;
+  height: 100%;
+}
+
+h1,
+h2 {
+  width: 100%;
+  margin-top: 20px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.container {
+  height: 100%;
+  width: 100%;
+  max-width: 650px;
+  margin: 0 auto;
+  padding-bottom: 30px;
+  background-color: aliceblue;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+
+input:checked+p {
+  text-decoration: line-through;
+}
+
+.task {
+  display: flex;
+  align-items: center;
+  border-bottom: solid 1px black;
+}
+
+
+
+.taskDiv,
+.newTaskDiv {
+  border: solid 2px black;
+  border-radius: 5px;
+  padding: 10px;
+  width: 80%;
+}
+
+.newTaskDiv {
+  display: flex;
+  flex-direction: row;
+  margin-top: 10px;
+  align-items: center;
+}
+
+form {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+width: 100%;
+}
+
+.newTaskDiv input,
+.newTaskDiv button {
+  align-items: center;
+  justify-content: center;
+  margin: 4px;
+}
+
+
+input {
+  border: solid 3px black;
+  border-radius: 5px;
+  font-size: 1rem;
+  font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+}
+
+.newTaskInput {
+  height: 30px;
+  font-size: 1rem;
+  min-width: 80%;
+}
+
+button {
+  background-color: lightgreen;
+  border: solid 3px black;
+  font-weight: bold;
+  border-radius: 5px;
+  /* width: 36px; */
+  height: 36px;
+  text-align: center;
+  font-family: 'Courier New', Courier, monospace;
+}
