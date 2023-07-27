@@ -2,6 +2,9 @@ import express from "express";
 import bodyParser from "body-parser";
 import { dirname } from "path";
 import { fileURLToPath } from "url";
+import mongoose from "mongoose";
+
+
 
 /* Set dirname prefix for the current root so that files can be served.
  * e.g res.sendFile(_dirname + '/web/index.html'); */
@@ -10,90 +13,38 @@ const PROJECT = "to-do-list-app";
 const app = express();
 const PORT = 3000;
 
+// Mongo db configuration
+const mongoDbUri = `mongodb://127.0.0.1/${PROJECT}`;
+const Schema = mongoose.Schema;
+const ObjectId = Schema.ObjectId;
+
+const mySchema = new Schema({
+  id: ObjectId,
+  listName: String,   // Name (or ID?) of the task list that this to-do item belongs to.
+  text: String,       // The text of the to-do item
+  done: Boolean       // Set to true if the to-do item is done.
+});
+
+// mongoose model for the database.. Used to perform db operations.
+const TaskModel = mongoose.model('Task', mySchema);
+
+
 // Link static files.
 app.use(express.static('public'));
 // Use body-parser middleware to make handling the request body easier.
 app.use(bodyParser.urlencoded({ extended: true }));
 
+// Connect to MongoDB database
+async function connectToMongo() {
+  console.log(`connectToMongo(): Connecting to ${mongoDbUri}`);
 
-// Defines the interface for a task.
-class Task {
-  constructor(done, text) {
-    this.done = done;
-    this.text = text;
+  try {
+    await mongoose.connect(mongoDbUri);
+    console.log(`connectToMongo(): Connected to ${mongoDbUri}`);
+
+  } catch (err) {
+    console.error(`ERROR: connectToMongo(): ${err}`);
   }
-
-  markDone() {
-    this.done = true;
-  }
-
-  markTodo() {
-    this.done = false;
-  }
-}
-
-// Defines the interface for a task list.
-class TaskList {
-  constructor(name, tasks) {
-    // Name of the list.
-    this.listName = name;
-    // Array of tasks.
-    this.tasks = tasks;
-  }
-
-  clearAllTasks() {
-    this.tasks = [];
-  }
-
-  markAllTasksDone() {
-    this.tasks.forEach(
-      t => { t.markDone(); }
-    );
-  }
-};
-
-
-const workTasks = new TaskList(
-  "Work",
-  [
-    new Task(false, "Learn EJS."),
-    new Task(true, "Finish the TODO project"),
-    new Task(false, "do a thing")
-  ]
-);
-
-const personalTasks = new TaskList(
-  "Personal",
-  [
-    new Task(false, "Take out the rubbish bin."),
-    new Task(true, "Feed the dog")
-  ]
-);
-
-const miscTasks = new TaskList(
-  "Miscellaneous",
-  [
-    { done: false, text: "My first Miscellaneous task" }
-  ]
-);
-
-
-/** All the user's available task lists. */
-const lists = [
-  workTasks,
-  personalTasks,
-  miscTasks
-];
-
-
-/** Get list by name.
-  * @param {string} name Name of list to find.
-  * @returns {TaskList} The required list or undefined if not found.
-*/
-function getList(name) {
-  return lists.find(
-    l => (l.listName === name)
-  );
 }
 
 
@@ -101,33 +52,47 @@ function getList(name) {
   * @param {res} app response handler.
   * @param {string} name name of the list to render.
 */
-function renderList(res, name) {
-  const list = getList(name);
-  // @TODO_EWEN What to do if list is undefined.
-  res.render('index.ejs', list);
+async function renderList(res, name) {
+  const query = {
+    listName: name
+  };
+  try {
+    // https://mongoosejs.com/docs/api/model.html#Model.find()
+    const listData = await TaskModel.find(query).exec();
+    const list = {
+      listName: name,
+      tasks: listData
+    };
+    res.render('index.ejs', list);
+  } catch (err) {
+    console.error(`ERROR: renderList(): ${err}`);
+  }
 }
 
 
 /* Handle GET requests to '/' */
 app.get('/', (req, res) => {
   console.log('GET: "/"', req.body);
-  // Redirect to first task list.
-  res.redirect(`/${lists[0].listName}`);
+  // Redirect to Personal task list.
+  res.redirect('/Personal');
 });
 
 
+/* Handle GET requests to '/Personal' */
 app.get('/Personal', (req, res) => {
   console.log('GET: "/Personal"', req.body);
   renderList(res, "Personal");
 });
 
 
+/* Handle GET requests to '/Work' */
 app.get('/Work', (req, res) => {
   console.log('GET: "/Work"', req.body);
   renderList(res, "Work");
 });
 
 
+/* Handle GET requests to '/Miscellaneous' */
 app.get('/Miscellaneous', (req, res) => {
   console.log('GET: "/Miscellaneous"', req.body);
   renderList(res, "Miscellaneous");
@@ -136,29 +101,26 @@ app.get('/Miscellaneous', (req, res) => {
 
 // Handle POST requests to '/'
 app.post('/', (req, res) => {
-  // Example post body { type: 'education', participants: '2' }
   console.log('POST: "/"', req.body);
 
-  // Find the required list...
-  const list = getList(req.body.listName);
+  TaskModel(
+    {
+      listName: req.body.listName,
+      text: req.body.newItem,
+      done: false
+    }
+  ).save();
 
-  if (!list) {
-    // Error, didn't get list.
-    console.error(`ERROR: Couldn't get the list with name ${req.body.listName}`);
-    // @TODO_EWEN return an http error..  Not sure this is correct.
-    res.status(500);
-  } else {
-    // Push the new item onto the list.
-    list.tasks.push(
-      { done: false, text: req.body.newItem }
-    );
+  // Redirect back to the list.
+  res.redirect(`/${req.body.listName}`);
+}
+);
 
-    // Redirect back to the list.
-    res.redirect(`/${req.body.listName}`);
-  }
 
-});
+//////////////////////////////////////////////////////////////////////////////////////////////
 
+// Connect to mongo database.
+connectToMongo();
 
 // Start the app, listening on PORT "PORT".
 app.listen(PORT,
