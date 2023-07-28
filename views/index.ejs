@@ -14,9 +14,11 @@
     <div class="taskDiv">
       <% for ( i=0; i < locals.tasks.length; i++ ) { %>
       <div class="task">
-        <!-- @TODO_EWEN How to marks tasks as done in the backend.? -->
-        <input type="checkbox" <% if (locals.tasks[i].done) { %> checked <% } %>>
-        <p><%= locals.tasks[i].text %></p>
+        <!-- Make each row a form so that we can action the checkbox -->
+        <form action="/done/<%= locals.listName %>/<%= locals.tasks[i]._id %>" method="post">
+          <input type="checkbox" name="done" onChange="this.form.submit()" <% if (locals.tasks[i].done) { %> checked <% } %>>
+          <p><%= locals.tasks[i].text %></p>
+        </form>
       </div>
       <% } %>
     </div>

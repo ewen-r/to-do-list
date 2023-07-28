@@ -24,7 +24,6 @@ h2 {
   align-items: center;
 }
 
-
 input:checked+p {
   text-decoration: line-through;
 }
@@ -34,8 +33,6 @@ input:checked+p {
   align-items: center;
   border-bottom: solid 1px black;
 }
-
-
 
 .taskDiv,
 .newTaskDiv {
@@ -56,7 +53,7 @@ form {
   display: flex;
   flex-direction: row;
   align-items: center;
-width: 100%;
+  width: 100%;
 }
 
 .newTaskDiv input,
@@ -65,7 +62,6 @@ width: 100%;
   justify-content: center;
   margin: 4px;
 }
-
 
 input {
   border: solid 3px black;
@@ -85,7 +81,7 @@ button {
   border: solid 3px black;
   font-weight: bold;
   border-radius: 5px;
-  /* width: 36px; */
+  max-width: 80px;
   height: 36px;
   text-align: center;
   font-family: 'Courier New', Courier, monospace;

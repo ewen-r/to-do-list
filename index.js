@@ -58,7 +58,7 @@ async function renderList(res, name) {
   };
   try {
     // https://mongoosejs.com/docs/api/model.html#Model.find()
-    const listData = await TaskModel.find(query).exec();
+    const listData = await TaskModel.find(query).sort({ "done": 1, "text": 1 }).exec();
     const list = {
       listName: name,
       tasks: listData
@@ -71,18 +71,20 @@ async function renderList(res, name) {
 
 
 /* Handle GET requests to '/' */
-app.get('/', (req, res) => {
-  console.log('GET: "/"', req.body);
-  // Redirect to Personal task list.
-  res.redirect('/Personal');
-});
+app.get('/',
+  (req, res) => {
+    console.log('GET: "/"', req.body);
+    // Redirect to Personal task list.
+    res.redirect('/Personal');
+  });
 
 
 /* Handle GET requests to '/Personal' */
-app.get('/Personal', (req, res) => {
-  console.log('GET: "/Personal"', req.body);
-  renderList(res, "Personal");
-});
+app.get('/Personal',
+  (req, res) => {
+    console.log('GET: "/Personal"', req.body);
+    renderList(res, "Personal");
+  });
 
 
 /* Handle GET requests to '/Work' */
@@ -93,27 +95,43 @@ app.get('/Work', (req, res) => {
 
 
 /* Handle GET requests to '/Miscellaneous' */
-app.get('/Miscellaneous', (req, res) => {
-  console.log('GET: "/Miscellaneous"', req.body);
-  renderList(res, "Miscellaneous");
-});
+app.get('/Miscellaneous',
+  (req, res) => {
+    console.log('GET: "/Miscellaneous"', req.body);
+    renderList(res, "Miscellaneous");
+  });
 
 
 // Handle POST requests to '/'
-app.post('/', (req, res) => {
-  console.log('POST: "/"', req.body);
+app.post('/',
+  (req, res) => {
+    console.log('POST: "/"', req.body);
 
-  TaskModel(
-    {
-      listName: req.body.listName,
-      text: req.body.newItem,
-      done: false
-    }
-  ).save();
+    TaskModel(
+      {
+        listName: req.body.listName,
+        text: req.body.newItem,
+        done: false
+      }
+    ).save();
 
-  // Redirect back to the list.
-  res.redirect(`/${req.body.listName}`);
-}
+    // Redirect back to the list.
+    res.redirect(`/${req.body.listName}`);
+  }
+);
+
+
+// Handle POST requests to '/done'
+app.post('/done/:listName/:_id',
+  (req, res) => {
+    console.log('POST: "/done"', req.params, req.body);
+
+    // Find document and update the "done" field.
+    const done = req.body?.done === 'on' ? true : false;
+    TaskModel.findByIdAndUpdate(req.params._id, { done: done }).exec();
+    // Redirect back to the list.
+    res.redirect(`/${req.params.listName}`);
+  }
 );
 
 
