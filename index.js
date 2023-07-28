@@ -135,6 +135,18 @@ app.post('/done/:listName/:_id',
 );
 
 
+// Handle POST requests to '/prune'
+app.post('/prune',
+  (req, res) => {
+    console.log('POST: "/prune"', req.params, req.body);
+
+    // Find all documents with "done" and delete them.
+    TaskModel.deleteMany({ done: true }).exec();
+
+    // Redirect back to the list.
+    res.redirect(`/${req.body.listName}`);
+  }
+);
 //////////////////////////////////////////////////////////////////////////////////////////////
 
 // Connect to mongo database.

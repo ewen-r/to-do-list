@@ -11,6 +11,11 @@ h2 {
   text-align: center;
 }
 
+h2 {
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+
 .container {
   height: 100%;
   width: 100%;
@@ -24,17 +29,8 @@ h2 {
   align-items: center;
 }
 
-input:checked+p {
-  text-decoration: line-through;
-}
-
-.task {
-  display: flex;
-  align-items: center;
-  border-bottom: solid 1px black;
-}
-
 .taskDiv,
+.pruneDiv,
 .newTaskDiv {
   border: solid 2px black;
   border-radius: 5px;
@@ -42,11 +38,25 @@ input:checked+p {
   width: 80%;
 }
 
-.newTaskDiv {
+.task {
+  display: flex;
+  border-bottom: solid 1px black;
+}
+
+.newTaskDiv,
+.pruneDiv {
   display: flex;
   flex-direction: row;
-  margin-top: 10px;
   align-items: center;
+}
+
+.pruneDiv {
+  border: none;
+  justify-content: center;
+}
+
+.newTaskDiv{
+  margin-top: 10px;
 }
 
 form {
@@ -56,11 +66,8 @@ form {
   width: 100%;
 }
 
-.newTaskDiv input,
-.newTaskDiv button {
-  align-items: center;
-  justify-content: center;
-  margin: 4px;
+form p {
+  padding-left: 6px;
 }
 
 input {
@@ -68,21 +75,37 @@ input {
   border-radius: 5px;
   font-size: 1rem;
   font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+  padding-left: 6px;
+  height: 30px;
 }
 
-.newTaskInput {
-  height: 30px;
-  font-size: 1rem;
+/* Strike-through paragraph text when it is for a checked item. */
+input:checked+p {
+  text-decoration: line-through;
+}
+
+.newTaskDiv input {
   min-width: 80%;
 }
 
 button {
-  background-color: lightgreen;
   border: solid 3px black;
   font-weight: bold;
   border-radius: 5px;
-  max-width: 80px;
   height: 36px;
   text-align: center;
   font-family: 'Courier New', Courier, monospace;
+  align-items: center;
+  justify-content: center;
+  margin-left: 4px;
+}
+
+.newTaskDiv button {
+  background-color: lightgreen;
+  max-width: 80px;
+}
+
+.pruneDiv button {
+  background-color: lightcoral;
+  max-width: 230px;
 }
