@@ -82,7 +82,7 @@ app.get('/',
 /* Handle GET requests to '/:listName' */
 app.get('/:listName',
   (req, res) => {
-    console.log('GET: "/"', req.body);
+    console.log(`GET: "/${req.params.listName}"`, req.body);
 
     // Render page for requested listName
     const listName = req.params.listName ? req.params.listName : 'Personal';
