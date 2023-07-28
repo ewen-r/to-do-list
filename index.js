@@ -74,32 +74,21 @@ async function renderList(res, name) {
 app.get('/',
   (req, res) => {
     console.log('GET: "/"', req.body);
-    // Redirect to Personal task list.
     res.redirect('/Personal');
-  });
+  }
+);
 
 
-/* Handle GET requests to '/Personal' */
-app.get('/Personal',
+/* Handle GET requests to '/:listName' */
+app.get('/:listName',
   (req, res) => {
-    console.log('GET: "/Personal"', req.body);
-    renderList(res, "Personal");
-  });
+    console.log('GET: "/"', req.body);
 
-
-/* Handle GET requests to '/Work' */
-app.get('/Work', (req, res) => {
-  console.log('GET: "/Work"', req.body);
-  renderList(res, "Work");
-});
-
-
-/* Handle GET requests to '/Miscellaneous' */
-app.get('/Miscellaneous',
-  (req, res) => {
-    console.log('GET: "/Miscellaneous"', req.body);
-    renderList(res, "Miscellaneous");
-  });
+    // Render page for requested listName
+    const listName = req.params.listName ? req.params.listName : 'Personal';
+    renderList(res, listName);
+  }
+);
 
 
 // Handle POST requests to '/'
@@ -147,6 +136,7 @@ app.post('/prune',
     res.redirect(`/${req.body.listName}`);
   }
 );
+
 //////////////////////////////////////////////////////////////////////////////////////////////
 
 // Connect to mongo database.

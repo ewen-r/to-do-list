@@ -4,7 +4,8 @@
 <body>
   <div class="container">
     <div>
-      <h1>✏️📋 To Do List App 📋✏️</h1>
+      <!-- <h1>✏️📋 To Do List App 📋✏️</h1> -->
+      <h1>📋 To Do List App 📋</h1>
     </div>
 
     <% if (locals.tasks && locals.listName) { %>
@@ -28,7 +29,7 @@
     <div class="pruneDiv">
       <div>
         <form action="/prune" method="post">
-          <button type="submit" name="listName" value="<%= locals.listName %>" list=""> 🗑️ Prune completed tasks </button>
+          <button type="submit" name="listName" value="<%= locals.listName %>" list=""> 🗑️ Prune completed tasks 🗑️ </button>
         </form>
       </div>
     </div>
