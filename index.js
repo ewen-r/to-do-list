@@ -4,6 +4,7 @@ import { dirname } from "path";
 import { fileURLToPath } from "url";
 import mongoose from "mongoose";
 import dotenv from "dotenv";
+import _ from "lodash";
 
 
 // Load and check env.
@@ -27,7 +28,6 @@ const mySchema = new Schema({
 
 // mongoose model for the database.. Used to perform db operations.
 const TaskModel = mongoose.model('Task', mySchema);
-
 
 // Link static files.
 app.use(express.static('public'));
@@ -53,14 +53,18 @@ async function connectToMongo() {
   * @param {string} name name of the list to render.
 */
 async function renderList(res, name) {
-  const query = {
-    listName: name
-  };
+  // Convert task list name to Capitalized case.
+  const listName = _.capitalize(name);
+
   try {
+    const query = {
+      listName: listName
+    };
+
     // https://mongoosejs.com/docs/api/model.html#Model.find()
     const listData = await TaskModel.find(query).sort({ "done": 1, "text": 1 }).exec();
     const list = {
-      listName: name,
+      listName: listName,
       tasks: listData
     };
     res.render('index.ejs', list);
@@ -70,7 +74,8 @@ async function renderList(res, name) {
 }
 
 
-/* Handle GET requests to '/' */
+/* Handle GET requests to '/' 
+ * - Redirect to 'Personal' task list.*/
 app.get('/',
   (req, res) => {
     console.log('GET: "/"', req.body);
@@ -79,41 +84,106 @@ app.get('/',
 );
 
 
-/* Handle GET requests to '/:listName' */
-app.get('/:listName',
-  (req, res) => {
-    console.log(`GET: "/${req.params.listName}"`, req.body);
+/* Handle REST-ful (GET and POST) requests to '/:listName'
+ * - GET Render page for requested listName.
+ * - POST Add task to requested listName and then redirect to the task list.
+*/
+app.route('/:listName')
+  .get(
+    (req, res) => {
+      console.log(`GET: "/${req.params.listName}"`, req.body);
 
-    // Render page for requested listName
-    const listName = req.params.listName ? req.params.listName : 'Personal';
-    renderList(res, listName);
-  }
-);
+      // Render page for requested listName
+      const listName = req.params.listName ? req.params.listName : 'Personal';
+      renderList(res, listName);
+    }
+  )
+  .post(
+    async function (req, res) {
+      console.log(`POST: "/${req.params.listName}"`, req.body);
+      const listName = _.capitalize(req.params.listName);
 
+      /* NOTE: HTML has no way to send a "DELETE" method.
+       *  so we check here for an _method === "delete"
+      */
 
-// Handle POST requests to '/'
-app.post('/',
-  async function (req, res) {
-    console.log('POST: "/"', req.body);
-
-    await TaskModel(
-      {
-        listName: req.body.listName,
-        text: req.body.newItem,
-        done: false
+      // Handle DELETE...
+      if (req.body._method === "delete") {
+        console.log("delete");
+        await deleteList(listName);
+        res.redirect(`/`);
+        return;
       }
-    ).save();
 
-    // Redirect back to the list.
-    res.redirect(`/${req.body.listName}`);
+      // Handle PRUNE...
+      if (req.body._method === "prune") {
+        console.log("prune");
+        await pruneList(listName);
+        res.redirect(listName);
+        return;
+      }
+
+      // Handle all other POST requests...
+      await TaskModel(
+        {
+          listName: req.params.listName,
+          text: req.body.newItem,
+          done: false
+        }
+      ).save();
+
+      // Redirect back to the list.
+      res.redirect(listName);
+    }
+  )
+  .delete(
+    // NOTE: HTML has no way to send a "DELETE" method so look at POST for details.
+    async function (req, res) {
+      console.error(`DELETE: "/${req.params.listName}"`, req.body);
+    }
+  );
+
+
+/** Delete a list.
+  * @param {string} name name of the list to delete.
+*/
+async function deleteList(name) {
+  console.log("deleteList()", name);
+
+  // Ignore if the listName is "Personal"
+  if (name === "Personal") {
+    console.error("ERROR: Cannot delete Personal task list");
+    return;
   }
-);
+
+  // Find all documents in the required list and delete them.
+  await TaskModel.deleteMany({
+    listName: name
+  }).exec();
+}
 
 
-// Handle POST requests to '/done'
-app.post('/done/:listName/:_id',
+/** Prune a list.
+  * @param {string} name name of the list to prune.
+*/
+async function pruneList(name) {
+  console.log("pruneList()", name);
+
+  // Find all documents in the required list with "done" and delete them.
+  TaskModel.deleteMany({
+    listName: name,
+    done: true
+  }).exec();
+}
+
+
+/* Handle POST requests to '/:listName/:_id/done'
+ * Find document and update the "done" field.
+ * - Redirect back to the list.
+*/
+app.post('/:listName/:_id/done',
   async function (req, res) {
-    console.log('POST: "/done"', req.params, req.body);
+    console.log(`POST: "/${req.params.listName}/${req.params._id}/done"`);
 
     // Find document and update the "done" field.
     const done = req.body?.done === 'on' ? true : false;
@@ -124,32 +194,18 @@ app.post('/done/:listName/:_id',
 );
 
 
-// Handle POST requests to '/prune'
-app.post('/prune',
-  (req, res) => {
-    console.log('POST: "/prune"', req.params, req.body);
-
-    // Find all documents with "done" and delete them.
-    TaskModel.deleteMany({ done: true }).exec();
-
-    // Redirect back to the list.
-    res.redirect(`/${req.body.listName}`);
-  }
-);
-
-
 /** Load and check env.
-  * - If env.USERNAME === 'EREYNOLDS' ...
-  * - - Automatically load .env file.
+  * - If SECRET_MONGO_URI is not set...
+  * - - Assume we are in dev mode and try to load it from .env file
   * - Check for Mongo Uri and exit if not found.
 */
 function loadAndCheckEnv() {
   console.log('=========================');
 
-  // If env.USERNAME === 'EREYNOLDS' ...
-  if (process.env.USERNAME === 'EREYNOLDS') {
+  // If SECRET_MONGO_URI is not set...
+  if (!process.env.SECRET_MONGO_URI) {
+    // Assume we are in dev mode and try to load it from .env file
     console.log('= RUNNING LOCALLY');
-    // Automatically load .env file.
     dotenv.config();
   } else {
     console.log('= RUNNING PRODUCTION');
