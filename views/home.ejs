@@ -1,5 +1,10 @@
 <%- include('partials/header_notAuthd') %>
 
+<style>
+  .btn-lg {
+    min-width: 140px;
+  }
+</style>
 
 <div class="jumbotron centered">
   <div class="container">
@@ -18,9 +23,12 @@
     </div>
 
     <div class="container">
-      <p>Please login or register to continue.</p>
-      <a class="btn btn-light btn-lg" href="/register" role="button">Register</a>
-      <a class="btn btn-dark btn-lg" href="/login" role="button">Login</a>
+      <p>Please Login or Register to continue.</p>
+      <div>
+        <a class="btn btn-dark btn-lg" href="/login" role="button">Login</a>
+
+        <a class="btn btn-dark btn-lg" href="/register" role="button">Register</a>
+      </div>
     </div>
   </div>
 </div>

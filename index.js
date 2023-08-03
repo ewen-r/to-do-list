@@ -86,7 +86,7 @@ const userSchema = new mongoose.Schema(
   {
     password: String,
     username: { type: String, unique: true },
-    googleId: { type: String, unique: true }
+    userStrategy: String
   }
 );
 
@@ -100,7 +100,8 @@ passport.use(
       console.log(`passport.LocalStrategy: username: [${username}]`);
 
       const query = {
-        username: username
+        username: username,
+        userStrategy: 'LocalStrategy'
       };
 
       // Find user in database and verify password...
@@ -148,9 +149,10 @@ passport.use(
       callbackURL: process.env.GOOGLE_CLIENT_CALLBACK_URL
     },
     async function (accessToken, refreshToken, profile, cb) {
-      console.log(`passport.LocalStrategy: googleId: [${profile.id}], username: [${profile.displayName}]`);
+      console.log(`passport.LocalStrategy: id: [${profile.id}], displayName: [${profile.displayName}]`);
       const query = {
-        googleId: profile.id
+        username: profile.id,
+        userStrategy: 'GoogleStrategy'
       };
 
       // Find user in database...
@@ -160,8 +162,8 @@ passport.use(
         // Add user to database.
         user = await UserModel(
           {
-            googleId: profile.id,
-            username: profile.displayName
+            username: profile.id,
+            userStrategy: 'GoogleStrategy'
           }
         ).save();
         console.log("passport.GoogleStrategy: Created user", user);
@@ -333,7 +335,8 @@ app.route('/register')
         const user = await UserModel(
           {
             username: req.body.username,
-            password: req.body.password
+            password: req.body.password,
+            userStrategy: 'LocalStrategy'
           }
         ).save();
 
@@ -420,7 +423,6 @@ app.route('/list/:listName')
             listName: req.params.listName,
             text: req.body.newItem,
             done: false,
-            // userName: userName,
             userId: userId
           }
         ).save();
