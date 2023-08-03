@@ -31,7 +31,7 @@ const myTaskSchema = new TaskSchema({
   listName: String,   // Name (or ID?) of the task list that this to-do item belongs to.
   text: String,       // The text of the to-do item
   done: Boolean,      // Set to true if the to-do item is done.
-  username: String    // Name of user.
+  userId: String      // ID of user.
 });
 
 // mongoose model for the database.. Used to perform db operations.
@@ -155,28 +155,34 @@ passport.use(new GoogleStrategy(
 ));
 
 
-/** Render index.ejs html file with required task list.
-  * @param {res} app response handler.
-  * @param {string} name name of the list to render.
+/** Render task list html file with required items.
+  * @param {any} res Response handler.
+  * @param {string} listName Name of the list to render.
+  * @param {string} userId ID of the user.
 */
-async function renderList(res, name) {
-  console.log('renderList():', name);
+async function renderList(res, listName, userId) {
+  console.log('renderList():', listName, userId);
 
   // Convert task list name to Capitalized case.
-  const listName = _.capitalize(name);
+  const _listName = _.capitalize(listName);
 
   try {
+    // Find entries for required listName and userId.
     const query = {
-      listName: listName
+      listName: _listName,
+      userId: userId
     };
 
-    // @TODO_EWEN Only find tasks for the logged-in user.
     const listData = await TaskModel.find(query).sort({ "done": 1, "text": 1 }).exec();
-    const list = {
-      listName: listName,
+
+    // Package the returned records into a format for the ejs render.
+    const ejsData = {
+      listName: _listName,
       tasks: listData
     };
-    res.render('index', list);
+
+    // render the task list page.
+    res.render('index', ejsData);
   } catch (err) {
     console.error(`renderList(): ERROR: ${err}`);
   }
@@ -275,6 +281,7 @@ app.get("/loginFail", function (req, res) {
   res.render("home", { error: msg });
 });
 
+
 /* Handle GET requests to '/registerFail'
  * - Render 'home' page with an error message.
 */
@@ -285,6 +292,9 @@ app.get("/registerFail", function (req, res) {
 });
 
 
+/* Handle GET and POST requests to '/register'
+ * - Render 'home' page with an error message.
+*/
 app.route('/register')
   .get(
     function (req, res) {
@@ -332,13 +342,18 @@ app.route('/list/:listName')
   .get(
     // GET Render page for requested listName.
     function (req, res) {
-      console.log(`GET: "list/${req.params.listName}"`, req.body);
+      console.log(`GET: "/list/${req.params.listName}"`, req.body);
 
       if (req.isAuthenticated()) {
         console.log("INFO: User is authenticated.");
-        // Render page for requested listName
+        // Get userId from request so that appropriate records can be targeted.
+        const userId = req.user.id;
+        const userName = req.user.username;
+        console.log(`INFO: user{ id: ${userId} name: ${userName} }"`);
+
+        // Render task list html file with required items.
         const listName = req.params.listName ? req.params.listName : DEFAULT_LIST;
-        renderList(res, listName);
+        renderList(res, listName, userId);
       } else {
         console.log("INFO: User is not authenticated.");
         res.redirect('/login');
@@ -348,13 +363,16 @@ app.route('/list/:listName')
   .post(
     // POST Add task to requested listName and then redirect to the task list.
     async function (req, res) {
-      console.log(`POST: "list/${req.params.listName}"`, req.body);
+      console.log(`POST: "/list/${req.params.listName}"`, req.body);
       const listName = _.capitalize(req.params.listName);
 
       if (req.isAuthenticated()) {
         console.log("INFO: User is authenticated.");
 
-        // @TODO_EWEN Get current username so that appropriate records can be targeted.
+        // Get userId from request so that appropriate records can be targeted.
+        const userId = req.user.id;
+        const userName = req.user.username;
+        console.log(`INFO: user{ id: ${userId} name: ${userName} }"`);
 
         /* NOTE: HTML has no way to send a "DELETE" or "PRUNE".
          *  so we check here for a matching _method.
@@ -363,7 +381,7 @@ app.route('/list/:listName')
         // Handle DELETE...
         if (req.body._method === "delete") {
           console.log("INFO: delete", req.body);
-          await deleteList(listName);
+          await deleteList(listName, userId);
           res.redirect(`/`);
           return;
         }
@@ -371,7 +389,7 @@ app.route('/list/:listName')
         // Handle PRUNE...
         if (req.body._method === "prune") {
           console.log("INFO: prune", req.body);
-          await pruneList(listName);
+          await pruneList(listName, userId);
           res.redirect(`/list/${listName}`);
           return;
         }
@@ -381,7 +399,9 @@ app.route('/list/:listName')
           {
             listName: req.params.listName,
             text: req.body.newItem,
-            done: false
+            done: false,
+            // userName: userName,
+            userId: userId
           }
         ).save();
 
@@ -396,37 +416,37 @@ app.route('/list/:listName')
 
 
 /** Delete a list.
-  * @param {string} name name of the list to delete.
+  * @param {string} listName Name of the list to delete.
+  * @param {string} userId ID of the user.
 */
-async function deleteList(name) {
-  console.log('deleteList():', name);
+async function deleteList(listName, userId) {
+  console.log('deleteList():', listName, userId);
 
   // Do not delete the default task list.. Just ignore and return.
-  if (name === DEFAULT_LIST) {
+  if (listName === DEFAULT_LIST) {
     console.error("deleteList(): ERROR: Cannot delete this task list");
     return;
   }
 
-  // @TODO_EWEN Get current username so that appropriate records can be targeted.
-
-  // Find all documents in the required list and delete them.
+  // Find all items in the required list and delete them.
   await TaskModel.deleteMany({
-    listName: name
+    listName: listName,
+    userId: userId
   }).exec();
 }
 
 
 /** Prune a list.
-  * @param {string} name name of the list to prune.
+  * @param {string} listName Name of the list to prune.
+  * @param {string} userId ID of the user.
 */
-async function pruneList(name) {
-  console.log("pruneList():", name);
+async function pruneList(listName, userId) {
+  console.log("pruneList():", listName, userId);
 
-  // @TODO_EWEN Get current username so that appropriate records can be targeted.
-
-  // Find all documents in the required list with "done" and delete them.
+  // Find all items in the required list with "done" and delete them.
   TaskModel.deleteMany({
-    listName: name,
+    listName: listName,
+    userId: userId,
     done: true
   }).exec();
 }
@@ -438,7 +458,7 @@ async function pruneList(name) {
 */
 app.post('/list/:listName/:_id/done',
   async function (req, res) {
-    console.log(`POST: "/list/${req.params.listName}/${req.params._id}/done"`, req.body);
+    console.log(`POST: "/list/${req.params.listName}/${req.params._id}/done  user{ id: ${req.user.id} name: ${req.user.username} }"`, req.body, req.user);
 
     // Find document and update the "done" field.
     const done = req.body?.done === 'on';
