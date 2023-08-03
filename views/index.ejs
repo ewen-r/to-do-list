@@ -4,12 +4,32 @@
 <body>
   <div class="container">
     <div>
-      <h1>📋 To Do List App 📋</h1>
+      <h1>📋 To Do List 📋</h1>
     </div>
 
     <% if (locals.tasks && locals.listName) { %>
 
     <h2> You have <%= locals.tasks.length %> items in your <%= locals.listName %> task list.</h2>
+
+    <div class="taskActionsDiv">
+      <!-- Prune completed tasks. -->
+      <div>
+        <form action="/list/<%= locals.listName %>" method="post">
+          <button type="submit" name="_method" value="prune" list="">
+            ⭕ Prune Completed</button>
+        </form>
+      </div>
+
+      <!-- Delete this task list -->
+      <div>
+        <form action="/list/<%= locals.listName %>" method="post">
+          <!-- Disable button if this is the "Personal" task list. -->
+          <button <% if (locals.listName === 'Personal') { %> disabled <% } %> type="submit" name="_method" value="delete" list="">
+            ❌ Delete This List </button>
+        </form>
+      </div>
+
+    </div>
 
     <!-- List of tasks. -->
     <div class="taskDiv">
@@ -18,7 +38,7 @@
         <!-- Make each row a form so that we can action the checkbox.
              Ideally we would use a PATCH request but this is just a simple dev app so
              we are using a /done route to toggle the done state. -->
-        <form action="/<%= locals.listName %>/<%= locals.tasks[i]._id %>/done" method="post">
+        <form action="/list/<%= locals.listName %>/<%= locals.tasks[i]._id %>/done" method="post">
           <input type="checkbox" name="done" onChange="this.form.submit()" <% if (locals.tasks[i].done) { %> checked <% } %>>
           <p><%= locals.tasks[i].text %></p>
         </form>
@@ -26,34 +46,25 @@
       <% } %>
     </div>
 
-    <div class="taskActionsDiv">
-      <!-- Prune completed tasks. -->
-      <div>
-        <form action="/<%= locals.listName %>" method="post">
-          <button type="submit" name="_method" value="prune" list=""> ⭕ Prune Completed Tasks ⭕ </button>
-        </form>
-      </div>
-
-      <!-- Delete this task list -->
-      <div>
-        <form action="/<%= locals.listName %>" method="post">
-          <!-- Disable button if this is the "Personal" task list. -->
-          <button <% if (locals.listName === 'Personal') { %> disabled <% } %> type="submit" name="_method" value="delete" list=""> ❌ Delete This Task List ❌ </button>
-        </form>
-      </div>
-
-    </div>
-
     <!-- Add new task item. -->
     <div class="newTaskDiv">
-      <form class="item" action="/<%= locals.listName %>" method="post">
+      <form class="item" action="/list/<%= locals.listName %>" method="post">
         <input type="text" name="newItem" placeholder="Add a new task here" autocomplete="off">
         <button type="submit" name="listName" value="<%= locals.listName %>" list=""> Add Task </button>
       </form>
     </div>
 
     <% } %>
+
+    <!-- Logout button -->
+    <div class="logoutDiv">
+      <form action="/logout">
+        <button class="btn" type="submit">🚀 Log out </button>
+      </form>
+    </div>
   </div>
+
+  <hr>
 </body>
 
 

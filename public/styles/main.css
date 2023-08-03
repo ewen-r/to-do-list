@@ -44,13 +44,15 @@ h2 {
 }
 
 .newTaskDiv,
-.taskActionsDiv {
+.taskActionsDiv,
+.logoutDiv {
   display: flex;
   flex-direction: row;
   align-items: center;
 }
 
-.taskActionsDiv {
+.taskActionsDiv,
+.logoutDiv {
   border: none;
   justify-content: center;
 }
@@ -88,11 +90,12 @@ input:checked+p {
   min-width: 80%;
 }
 
-button {
+button,
+.logoutDiv button  {
   border: solid 3px black;
   font-weight: bold;
   border-radius: 5px;
-  height: 36px;
+  min-height: 36px;
   text-align: center;
   font-family: 'Courier New', Courier, monospace;
   align-items: center;
@@ -108,4 +111,9 @@ button {
 .taskActionsDiv button {
   background-color: lightcoral;
   max-width: 250px;
+}
+
+.logoutDiv button {
+  background-color: lightcoral;
+  margin-top: 1rem;
 }

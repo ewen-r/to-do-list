@@ -24,25 +24,37 @@
     padding-top: 10px;
     padding-bottom: 10px;
     align-items: center;
+    margin-top: 10px;
+    margin-bottom: 30px;
   }
 
-  .headerDiv a {
+  .headerDiv h3 a {
     padding: 20px;
     text-transform: uppercase;
+  }
+
+  .headerDiv a:hover {
+    text-decoration: none;
+  }
+
+  form {
+    align-items: end;
+  }
+
+  .form-group {
+    margin-bottom: 0px;
+  }
+
+  button {
+    height: calc(2.25rem + 2px);
+  }
+
+  .row {
+    justify-content: center;
   }
 </style>
 
 
 <div class="headerDiv">
-  <div>
-    <a href="/list/Personal"> Personal </a>
-  </div>
-
-  <div>
-    <a href="/list/Work"> Work </a>
-  </div>
-
-  <div>
-    <a href="/list/Miscellaneous"> Miscellaneous </a>
-  </div>
+  <h3 class="display-5"><a href="/">📋 To Do List 📋</a></h3>
 </div>

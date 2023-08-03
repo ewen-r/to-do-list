@@ -1,0 +1,28 @@
+<%- include('partials/header_notAuthd') %>
+
+
+<div class="jumbotron centered">
+  <div class="container">
+    <h1 class="display-5">
+      <% if (locals.error) { %>
+      🤔 Oops! 🤔
+      <% } else { %>
+      Welcome
+      <% } %>
+    </h1>
+
+    <% if (locals.error) { %>
+    <div class="errorDiv">
+      <h2><%= locals.error %></h2>
+      <% } %>
+    </div>
+
+    <div class="container">
+      <p>Please login or register to continue.</p>
+      <a class="btn btn-light btn-lg" href="/register" role="button">Register</a>
+      <a class="btn btn-dark btn-lg" href="/login" role="button">Login</a>
+    </div>
+  </div>
+</div>
+
+<%- include('partials/footer') %>
