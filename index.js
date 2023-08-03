@@ -12,7 +12,7 @@ import GoogleStrategy from "passport-google-oauth20";
 
 
 // Load and check env.
-loadAndCheckEnv();
+loadEnv();
 
 /* Set dirname prefix for the current root so that files can be served.
  * e.g res.sendFile(_dirname + '/web/index.html'); */
@@ -69,7 +69,7 @@ async function connectToDb() {
   console.log('connectToDb():');
 
   try {
-    await mongoose.connect(`${process.env.SECRET_MONGO_URI}/${PROJECT}`);
+    await mongoose.connect(`${process.env.MONGO_URI}/${PROJECT}`);
     console.log('connectToDb(): Connected.');
   } catch (err) {
     console.error(`connectToDb(): ERROR: ${err}`);
@@ -84,9 +84,9 @@ connectToDb();
 // Setup user schema.
 const userSchema = new mongoose.Schema(
   {
-    username: { type: String, unique: true },
     password: String,
-    googleId: String
+    username: { type: String, unique: true },
+    googleId: { type: String, unique: true }
   }
 );
 
@@ -96,27 +96,28 @@ const UserModel = new mongoose.model("User", userSchema);
 // Setup Local strategy for passport.
 passport.use(
   new LocalStrategy(
-    async function (username, password, done) {
+    async function (username, password, cb) {
+      console.log(`passport.LocalStrategy: username: [${username}]`);
+
       const query = {
         username: username
       };
 
       // Find user in database and verify password...
-      const userData = await UserModel.find(query).exec();
-      if (!userData.length) {
-        console.error("ERROR: Did not find matching user.");
-        return done(null, false, { message: 'Incorrect username.' });
+      const user = await UserModel.findOne(query).exec();
+      if (!user) {
+        console.error("passport.LocalStrategy: ERROR: Did not find matching user.");
+        return cb(null, false, { message: 'Incorrect username.' });
       }
-      const user = userData[0];
-      console.log("INFO: Found user", userData[0]);
+      console.log("passport.LocalStrategy: Found user", user);
 
       // @TODO_EWEN Passwords should be encrypted.
       if (password !== user.password) {
-        console.error("ERROR: Password mismatch.");
-        return done(null, false, { message: 'Incorrect username or password.' });
+        console.error("passport.LocalStrategy: ERROR: Password mismatch.");
+        return cb(null, false, { message: 'Incorrect username or password.' });
       }
-      console.log("INFO: Username and Password matches.");
-      return done(null, user);
+      console.log("passport.LocalStrategy: Username and Password matches.");
+      return cb(null, user);
     }
   )
 );
@@ -139,20 +140,39 @@ passport.deserializeUser(function (user, cb) {
 
 
 // Setup Google strategy for passport.
-passport.use(new GoogleStrategy(
-  {
-    clientID: process.env.GOOGLE_CLIENT_ID,
-    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    // @TODO_EWEN Change this route for my app.
-    callbackURL: "http://localhost:3000/auth/google/secrets",
-    userProfileURL: "https://www.googleapis.com/oauth2/v3/userinfo"
-  },
-  function (accessToken, refreshToken, profile, cb) {
-    UserModel.findOrCreate({ googleId: profile.id }, function (err, user) {
-      return cb(err, user);
-    });
-  }
-));
+passport.use(
+  new GoogleStrategy(
+    {
+      clientID: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      callbackURL: process.env.GOOGLE_CLIENT_CALLBACK_URL
+    },
+    async function (accessToken, refreshToken, profile, cb) {
+      console.log(`passport.LocalStrategy: googleId: [${profile.id}], username: [${profile.displayName}]`);
+      const query = {
+        googleId: profile.id
+      };
+
+      // Find user in database...
+      let user = await UserModel.findOne(query).exec();
+      if (!user) {
+        console.error("passport.GoogleStrategy: ERROR: Did not find matching user.");
+        // Add user to database.
+        user = await UserModel(
+          {
+            googleId: profile.id,
+            username: profile.displayName
+          }
+        ).save();
+        console.log("passport.GoogleStrategy: Created user", user);
+      } else {
+        console.log("passport.GoogleStrategy: Found user", user);
+      }
+
+      return cb(null, user);
+    }
+  )
+);
 
 
 /** Render task list html file with required items.
@@ -207,12 +227,12 @@ app.get("/auth/google",
 );
 
 
-/* Handle GET requests to '/auth/google/login'
+/* Handle GET requests to '/auth/google/reply'
  * Landing page on redirection after google authentication.
  * - Use passport to authenticate the user.
  * - - Redirect to tasks page if authentication OK.
 */
-app.get("/auth/google/secrets",
+app.get("/auth/google/reply",
   passport.authenticate(
     'google',
     {
@@ -470,17 +490,17 @@ app.post('/list/:listName/:_id/done',
 
 
 /** Load and check env.
-  * - If SECRET_MONGO_URI is not set...
-  * - - Assume we are in dev mode and try to load it from .env file
-  * - Check for Mongo Uri and exit if not found.
+  * - If vars are not set...
+  * - - Assume we are in dev mode and try to load vars from .env file
+  * - Check for required env variables and exit if not found.
 */
-function loadAndCheckEnv() {
-  console.log('loadAndCheckEnv():');
+function loadEnv() {
+  console.log('loadEnv():');
   console.log('=========================');
 
-  // If SECRET_MONGO_URI is not set...
-  if (!process.env.SECRET_MONGO_URI) {
-    // Assume we are in dev mode and try to load it from .env file
+  // If vars are not set...
+  if (!checkVars()) {
+    // Assume we are in dev mode and try to load vars from .env file
     console.log('= RUNNING LOCALLY');
     dotenv.config();
   } else {
@@ -490,14 +510,20 @@ function loadAndCheckEnv() {
   console.log('=========================');
 
   // Check for required env constants and exit if not found.
-  if (
-    !process.env.SECRET_MONGO_URI
-    || !process.env.SESSION_SECRET
-    || !process.env.GOOGLE_CLIENT_ID
-    || !process.env.GOOGLE_CLIENT_SECRET) {
-    console.error('loadAndCheckEnv(): ERROR: Unable to load all required env values.');
+  if (!checkVars()) {
+    console.error('loadEnv(): ERROR: Unable to load all required env values.');
     process.exit(5);
   }
+}
+
+
+function checkVars() {
+  // return true if all required vars are loaded.
+  return (process.env.MONGO_URI
+    && process.env.SESSION_SECRET
+    && process.env.GOOGLE_CLIENT_ID
+    && process.env.GOOGLE_CLIENT_SECRET
+    && process.env.GOOGLE_CLIENT_CALLBACK_URL);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
