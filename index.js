@@ -203,7 +203,7 @@ async function renderList(res, listName, userId) {
       tasks: listData
     };
 
-    // render the task list page.
+    // Render the task list page.
     res.render('index', ejsData);
   } catch (err) {
     console.error(`renderList(): ERROR: ${err}`);
@@ -278,7 +278,7 @@ app.get('/logout',
   function (req, res) {
     console.log('GET: "/logout"', req.body);
     req.logout(function (err) {
-      res.redirect('login');
+      res.redirect('/');
     });
   }
 );
@@ -315,7 +315,7 @@ app.get("/registerFail", function (req, res) {
 
 
 /* Handle GET and POST requests to '/register'
- * - Render 'home' page with an error message.
+ * - Render 'register' page.
 */
 app.route('/register')
   .get(
@@ -340,18 +340,21 @@ app.route('/register')
           }
         ).save();
 
-        // Now the user has registered.. log them in.
+        /* Now the user has registered.. log them in.
+         * - If fail to login.. redirect to /loginFail.
+         * - Otherwise.. redirect to default list.
+        */
         req.login(user, function (err) {
           if (err) {
             console.error("ERROR: Couldn't authenticate new user.", err);
-            res.redirect('loginFail');
+            res.redirect('/loginFail');
           }
           console.log("INFO: Login successful. Redirecting");
           res.redirect(`/list/${DEFAULT_LIST}`);
         });
       } catch (err) {
         console.error("ERROR: Couldn't register user.", err);
-        res.redirect('registerFail');
+        res.redirect('/registerFail');
       }
     }
   );
@@ -367,6 +370,10 @@ app.route('/list/:listName')
     function (req, res) {
       console.log(`GET: "/list/${req.params.listName}"`, req.body);
 
+      /* Check user is authenticated...
+       * - If fail.. redirect to /login.
+       * - Otherwise.. render required list.
+      */
       if (req.isAuthenticated()) {
         console.log("INFO: User is authenticated.");
         // Get userId from request so that appropriate records can be targeted.
@@ -401,15 +408,21 @@ app.route('/list/:listName')
          *  so we check here for a matching _method.
         */
 
-        // Handle DELETE...
+        /* Handle DELETE...
+         * - Delete all items for the given list.
+         * - Redirect back to default list.
+        */
         if (req.body._method === "delete") {
           console.log("INFO: delete", req.body);
           await deleteList(listName, userId);
-          res.redirect(`/`);
+          res.redirect(`/list/${DEFAULT_LIST}`);
           return;
         }
 
-        // Handle PRUNE...
+        /* Handle PRUNE...
+         * - Delete all completed items for the given list.
+         * - Redirect back to current list.
+        */
         if (req.body._method === "prune") {
           console.log("INFO: prune", req.body);
           await pruneList(listName, userId);
@@ -427,7 +440,7 @@ app.route('/list/:listName')
           }
         ).save();
 
-        // Redirect back to the list.
+        // Redirect back to the current list.
         res.redirect(`/list/${listName}`);
       } else {
         console.log("INFO: User is not authenticated.");
@@ -451,10 +464,12 @@ async function deleteList(listName, userId) {
   }
 
   // Find all items in the required list and delete them.
-  await TaskModel.deleteMany({
+  const query = {
     listName: listName,
     userId: userId
-  }).exec();
+  };
+
+  await TaskModel.deleteMany(query).exec();
 }
 
 
@@ -466,11 +481,13 @@ async function pruneList(listName, userId) {
   console.log("pruneList():", listName, userId);
 
   // Find all items in the required list with "done" and delete them.
-  TaskModel.deleteMany({
+  const query = {
     listName: listName,
     userId: userId,
     done: true
-  }).exec();
+  };
+
+  TaskModel.deleteMany(query).exec();
 }
 
 
@@ -485,7 +502,7 @@ app.post('/list/:listName/:_id/done',
     // Find document and update the "done" field.
     const done = req.body?.done === 'on';
     await TaskModel.findByIdAndUpdate(req.params._id, { done: done }).exec();
-    // Redirect back to the list.
+    // Redirect back to the current list.
     res.redirect(`/list/${req.params.listName}`);
   }
 );
